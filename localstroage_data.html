@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LocalStorage Viewer</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 28px;
+  }
+
+  .subtitle {
+    color: #888;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-refresh {
+    background: #667eea;
+    color: #fff;
+  }
+
+  .btn-refresh:hover {
+    background: #5568d3;
+  }
+
+  .btn-clear {
+    background: #e74c3c;
+    color: #fff;
+  }
+
+  .btn-clear:hover {
+    background: #c0392b;
+  }
+
+  .btn-add {
+    background: #27ae60;
+    color: #fff;
+  }
+
+  .btn-add:hover {
+    background: #219150;
+  }
+
+  .count-badge {
+    display: inline-block;
+    background: #667eea;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-left: 10px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #aaa;
+  }
+
+  .empty-state .icon {
+    font-size: 60px;
+    margin-bottom: 15px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th {
+    background: #f5f6fa;
+    padding: 12px;
+    text-align: left;
+    color: #555;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+    word-break: break-word;
+  }
+
+  tr:hover td {
+    background: #fafbff;
+  }
+
+  .key {
+    font-weight: 600;
+    color: #667eea;
+    width: 25%;
+  }
+
+  .value {
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  .type-json {
+    background: #ffeaa7;
+    color: #6c5ce7;
+  }
+
+  .type-string {
+    background: #dfe6e9;
+    color: #636e72;
+  }
+
+  .type-number {
+    background: #a8e6cf;
+    color: #00b894;
+  }
+
+  .type-bool {
+    background: #fab1a0;
+    color: #d63031;
+  }
+
+  .actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn-delete {
+    background: #e74c3c;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  .btn-delete:hover {
+    background: #c0392b;
+  }
+
+  .preview {
+    max-height: 100px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 100;
+  }
+
+  .modal.active {
+    display: flex;
+  }
+
+  .modal-content {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 450px;
+  }
+
+  .modal-content h3 {
+    margin-bottom: 15px;
+    color: #333;
+  }
+
+  .modal-content label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #555;
+    font-weight: 600;
+  }
+
+  .modal-content input,
+  .modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  .modal-content input:focus,
+  .modal-content textarea:focus {
+    border-color: #667eea;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    background: #dfe6e9;
+    color: #333;
+  }
+
+  .btn-cancel:hover {
+    background: #b2bec3;
+  }
+
+  .btn-save {
+    background: #27ae60;
+    color: #fff;
+  }
+
+  .btn-save:hover {
+    background: #219150;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🗂️ LocalStorage Viewer</h1>
+  <p class="subtitle">আপনার ব্রাউজারের LocalStorage-এ যা কিছু সংরক্ষিত আছে তা এখানে দেখতে পাবেন</p>
+
+  <div class="toolbar">
+    <button class="btn-refresh" onclick="renderData()">🔄 Refresh</button>
+    <button class="btn-add" onclick="openModal()">➕ Add Item</button>
+    <button class="btn-clear" onclick="clearAll()">🗑️ Clear All</button>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal" id="addModal">
+  <div class="modal-content">
+    <h3>Add New Item</h3>
+    <label>Key</label>
+    <input type="text" id="newKey" placeholder="যেমন: username">
+    <label>Value</label>
+    <textarea id="newValue" rows="3" placeholder="যেমন: Rahim"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============ RENDER ============
+  function renderData() {
+    const content = document.getElementById('content');
+    const keys = Object.keys(localStorage);
+
+    if (keys.length === 0) {
+      content.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <p>LocalStorage সম্পূর্ণ খালি!</p>
+          <p style="font-size:13px;margin-top:6px;">"Add Item" বাটনে ক্লিক করে কিছু যোগ করুন</p>
+        </div>`;
+      return;
+    }
+
+    let rows = '';
+    keys.forEach(key => {
+      const value = localStorage.getItem(key);
+      let preview = value;
+      let typeLabel = 'string';
+      let typeClass = 'type-string';
+
+      // Type detection
+      if (value === 'true' || value === 'false') {
+        typeLabel = 'boolean'; typeClass = 'type-bool';
+      } else if (!isNaN(value) && value.trim() !== '') {
+        typeLabel = 'number'; typeClass = 'type-number';
+      } else if (isJSON(value)) {
+        typeLabel = 'JSON'; typeClass = 'type-json';
+        preview = JSON.stringify(JSON.parse(value), null, 2);
+      }
+
+      // Escape HTML
+      const safeKey = escapeHtml(key);
+      const safePreview = escapeHtml(preview);
+      const safeValue = escapeHtml(value);
+
+      rows += `
+        <tr>
+          <td class="key">${safeKey}</td>
+          <td>
+            <span class="type-badge ${typeClass}">${typeLabel}</span>
+            <div class="preview value" title="Full value: ${safeValue}">${safePreview}</div>
+          </td>
+          <td style="width:120px;">
+            <div class="actions">
+              <button class="btn-delete" onclick="deleteItem('${escapeJs(key)}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+    });
+
+    content.innerHTML = `
+      <h2 style="font-size:16px;margin-bottom:15px;color:#555;">
+        মোট আইটেম <span class="count-badge">${keys.length}</span>
+      </h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Value</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ============ HELPERS ============
+  function isJSON(str) {
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeJs(str) {
+    return String(str)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r');
+  }
+
+  // ============ DELETE ============
+  function deleteItem(key) {
+    if (confirm(`"${key}" ডিলিট করতে চান?`)) {
+      localStorage.removeItem(key);
+      renderData();
+    }
+  }
+
+  // ============ CLEAR ALL ============
+  function clearAll() {
+    const count = Object.keys(localStorage).length;
+    if (count === 0) {
+      alert('LocalStorage খালি, কিছু নেই!');
+      return;
+    }
+    if (confirm(`সব (${count}) আইটেম ডিলিট করতে চান? এটি পুনরুদ্ধার করা যাবে না।`)) {
+      localStorage.clear();
+      renderData();
+    }
+  }
+
+  // ============ MODAL ============
+  function openModal() {
+    document.getElementById('addModal').classList.add('active');
+    document.getElementById('newKey').value = '';
+    document.getElementById('newValue').value = '';
+    document.getElementById('newKey').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('addModal').classList.remove('active');
+  }
+
+  function saveItem() {
+    const key = document.getElementById('newKey').value.trim();
+    const value = document.getElementById('newValue').value;
+
+    if (!key) {
+      alert('Key দিতে হবে!');
+      return;
+    }
+
+    localStorage.setItem(key, value);
+    closeModal();
+    renderData();
+  }
+
+  // ============ AUTO REFRESH (storage event) ============
+  window.addEventListener('storage', renderData);
+
+  // ============ INITIAL LOAD ============
+  document.addEventListener('DOMContentLoaded', renderData);
+
+  // Enter key দিয়ে save
+  document.getElementById('newKey').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('newValue').focus();
+  });
+</script>
+</body>
+</html>
